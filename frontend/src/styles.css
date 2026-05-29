@@ -6,8 +6,6 @@
   --muted-foreground: #525252;
   --border: #000000;
   --border-light: #e5e5e5;
-  --card: #ffffff;
-  --card-foreground: #000000;
   --ring: #000000;
   --font-display: "Playfair Display", Georgia, serif;
   --font-body: "Source Serif 4", Georgia, serif;
@@ -26,15 +24,6 @@ body {
   line-height: 1.6;
   position: relative;
   overflow-x: hidden;
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 1px,
-    #000000 1px,
-    #000000 2px
-  );
-  background-size: 100% 4px;
-  background-attachment: fixed;
 }
 
 body::before {
@@ -52,171 +41,73 @@ body::before {
   z-index: 1;
 }
 
-.page {
+.app {
   max-width: 72rem;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 2.5rem 1.5rem 5rem;
 }
 
-.hero {
-  padding: 3rem 0 4rem;
-}
-
-.hero-grid {
+.header {
   display: grid;
   gap: 2rem;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  align-items: center;
+  padding-bottom: 2rem;
+  border-bottom: 4px solid var(--foreground);
 }
 
 .eyebrow {
   font-family: var(--font-mono);
   letter-spacing: 0.4em;
   text-transform: uppercase;
-  font-size: 0.75rem;
-  margin-bottom: 1.5rem;
+  font-size: 0.7rem;
+  margin: 0 0 1rem;
 }
 
-.hero-title {
+.title {
   font-family: var(--font-display);
-  font-size: clamp(3.5rem, 8vw, 9rem);
+  font-size: clamp(2.8rem, 6vw, 6rem);
   line-height: 0.95;
-  letter-spacing: -0.04em;
-  margin: 0 0 1.5rem;
+  margin: 0 0 1rem;
+  letter-spacing: -0.03em;
 }
 
-.hero-title-break {
-  display: block;
-  font-style: italic;
-}
-
-.hero-lede {
-  font-size: 1.25rem;
-  max-width: 36rem;
+.lede {
+  font-size: 1.15rem;
+  max-width: 40rem;
   margin: 0;
 }
 
-.hero-rule {
-  display: flex;
-  align-items: center;
+.rule {
+  height: 6px;
+  background: var(--foreground);
+  width: min(18rem, 100%);
+}
+
+.controls {
+  display: grid;
   gap: 1.5rem;
-}
-
-.rule-block {
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 4px solid var(--foreground);
-}
-
-.rule-line {
-  flex: 1;
-  height: 4px;
-  background: var(--foreground);
-}
-
-.hero-meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1.5rem;
-  margin-top: 3rem;
-  border-top: 4px solid var(--foreground);
-  padding-top: 2rem;
-}
-
-.meta-label {
-  display: block;
-  font-family: var(--font-mono);
-  letter-spacing: 0.2em;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-}
-
-.meta-value {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-}
-
-.section {
-  padding: 4rem 0;
-}
-
-.section-header {
-  display: grid;
-  gap: 0.75rem;
-  margin-bottom: 2.5rem;
-}
-
-.section-title {
-  font-family: var(--font-display);
-  font-size: clamp(2.2rem, 5vw, 3.5rem);
-  margin: 0;
-}
-
-.section-subtitle {
-  color: var(--muted-foreground);
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.panel-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-}
-
-.panel {
-  border: 2px solid var(--foreground);
-  padding: 2rem;
-  background: var(--card);
-  transition: color 100ms, background 100ms, border-color 100ms;
-}
-
-.panel:hover {
-  background: var(--foreground);
-  color: var(--background);
-}
-
-.panel.inverted {
-  background: var(--foreground);
-  color: var(--background);
-  border-color: var(--foreground);
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 1.5rem;
-}
-
-.panel-tag {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  align-items: end;
+  grid-template-columns: minmax(200px, 1fr) auto;
+  margin: 2.5rem 0 1.5rem;
 }
 
 .field {
   display: grid;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
 }
 
 .field-label {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
   text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.7rem;
 }
 
 .input {
   border: 2px solid var(--foreground);
   background: transparent;
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
   font-size: 1rem;
   font-family: var(--font-body);
-  transition: border-width 100ms;
 }
 
 .input:focus {
@@ -225,27 +116,19 @@ body::before {
 }
 
 .button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.9rem 2rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3em;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+  padding: 0.9rem 2.2rem;
   border: 2px solid var(--foreground);
-  background: transparent;
+  background: var(--foreground);
+  color: var(--background);
+  font-family: var(--font-mono);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
   cursor: pointer;
   transition: background 100ms, color 100ms;
 }
 
-.button-primary {
-  background: var(--foreground);
-  color: var(--background);
-  border-color: var(--foreground);
-}
-
-.button-primary:hover {
+.button:hover {
   background: var(--background);
   color: var(--foreground);
 }
@@ -260,181 +143,155 @@ body::before {
   cursor: not-allowed;
 }
 
-.note {
-  margin-top: 1rem;
-  font-size: 0.9rem;
+.hint {
+  grid-column: 1 / -1;
+  font-size: 0.85rem;
   color: var(--muted-foreground);
 }
 
 .error {
-  margin-top: 1rem;
+  margin: 0 0 2rem;
   border-top: 2px solid currentColor;
-  padding-top: 1rem;
+  padding-top: 0.75rem;
   font-family: var(--font-mono);
 }
 
-.panel-empty {
-  font-size: 1rem;
-  border-top: 2px solid currentColor;
-  padding-top: 1rem;
+.card {
+  border: 2px solid var(--foreground);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  background: var(--background);
 }
 
-.signal-grid {
+.card.inverted {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  margin: 0;
+}
+
+.card-meta {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.7rem;
+}
+
+.chart {
   display: grid;
   gap: 1.5rem;
 }
 
+.chart-shell {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.chart-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.axis-value {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.65rem;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  border: 2px solid var(--border-light);
+  background-image:
+    linear-gradient(#00000008 1px, transparent 1px),
+    linear-gradient(90deg, #00000008 1px, transparent 1px);
+  background-size: 40px 40px;
+  shape-rendering: geometricPrecision;
+}
+
+.chart-grid-line {
+  stroke: currentColor;
+  stroke-opacity: 0.18;
+  stroke-width: 1.5;
+}
+
+.chart-line {
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-dot {
+  fill: currentColor;
+}
+
+.chart-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.7rem;
+}
+
+.signal {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
 .signal-label {
   font-family: var(--font-mono);
+  text-transform: uppercase;
   letter-spacing: 0.2em;
   font-size: 0.7rem;
-  text-transform: uppercase;
+  margin: 0;
 }
 
 .signal-value {
   font-family: var(--font-display);
   font-size: 1.6rem;
-  margin: 0.25rem 0 0;
+  margin: 0.35rem 0 0;
 }
 
-.signal-pill {
+.empty {
+  border-top: 2px solid currentColor;
+  padding-top: 1.5rem;
   font-family: var(--font-display);
-  font-size: 2rem;
-  margin: 0.25rem 0 0;
-}
-
-.section-rule {
-  height: 6px;
-  background: var(--foreground);
-}
-
-.tape {
-  border: 2px solid var(--foreground);
-  padding: 2rem;
-  background-image:
-    linear-gradient(#00000008 1px, transparent 1px),
-    linear-gradient(90deg, #00000008 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-.tape-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 2rem;
-}
-
-.sparkline {
-  width: 180px;
-  height: 48px;
-}
-
-.sparkline-placeholder {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.table-wrap {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 620px;
-}
-
-.table th,
-.table td {
-  border-bottom: 1px solid var(--border-light);
-  padding: 0.75rem 0.5rem;
-  text-align: left;
-}
-
-.table th {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.table-empty {
-  padding: 2rem;
-  text-align: center;
-  font-family: var(--font-display);
-}
-
-.mono {
-  font-family: var(--font-mono);
-}
-
-.protocol-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-}
-
-.protocol-card {
-  border: 2px solid var(--foreground);
-  padding: 1.5rem;
-  background: var(--background);
-  transition: color 100ms, background 100ms, border-color 100ms;
-}
-
-.protocol-card:hover {
-  background: var(--foreground);
-  color: var(--background);
-}
-
-.protocol-card.inverted {
-  background: var(--foreground);
-  color: var(--background);
-  border-color: var(--foreground);
-}
-
-.protocol-title {
-  font-family: var(--font-mono);
-  letter-spacing: 0.2em;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  margin: 0 0 0.75rem;
-}
-
-.protocol-copy {
-  margin: 0;
-}
-
-.footer {
-  border-top: 4px solid var(--foreground);
-  padding-top: 2rem;
-  margin-top: 4rem;
-}
-
-.footer-title {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  margin: 0 0 0.5rem;
-}
-
-.footer-copy {
-  margin: 0;
-  color: var(--muted-foreground);
+  font-size: 1.1rem;
 }
 
 @media (max-width: 720px) {
-  .hero-meta {
+  .controls {
     grid-template-columns: 1fr;
   }
 
-  .tape-header {
+  .card-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1.5rem;
-  }
-
-  .table {
-    min-width: 520px;
   }
 }
