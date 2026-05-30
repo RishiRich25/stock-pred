@@ -237,7 +237,7 @@ def predict_next(
 	hidden_size: int = 64,
 	num_layers: int = 2,
 	dropout: float = 0.1,
-	threshold: float = 1.5,
+	threshold: float = 0.8,
 	device: str | None = None,
 ) -> Dict[str, float | str]:
 	tickers_dir = Path(tickers_dir)
@@ -307,7 +307,7 @@ def _parse_args() -> argparse.Namespace:
 	parser.add_argument("--hidden-size", type=int, default=64, help="LSTM hidden size.")
 	parser.add_argument("--num-layers", type=int, default=2, help="Number of LSTM layers.")
 	parser.add_argument("--dropout", type=float, default=0.1, help="LSTM dropout.")
-	parser.add_argument("--threshold", type=float, default=1.5, help="Signal threshold percentage.")
+	parser.add_argument("--threshold", type=float, default=0.8, help="Signal threshold percentage.")
 	return parser.parse_args()
 
 

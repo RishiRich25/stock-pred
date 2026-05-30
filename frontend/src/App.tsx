@@ -219,7 +219,9 @@ export default function App() {
             </div>
             <div>
               <p className="signal-label">Signal</p>
-              <p className="signal-value">{prediction.signal}</p>
+              <p className={`signal-value signal-${prediction.signal.toLowerCase()}`}>
+                {prediction.signal}
+              </p>
             </div>
             <div>
               <p className="signal-label">Change</p>

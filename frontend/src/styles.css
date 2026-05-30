@@ -278,6 +278,18 @@ body::before {
   margin: 0.35rem 0 0;
 }
 
+.signal-buy {
+  color: #0a7a2f;
+}
+
+.signal-sell {
+  color: #b00020;
+}
+
+.signal-hold {
+  color: #1f4ea3;
+}
+
 .empty {
   border-top: 2px solid currentColor;
   padding-top: 1.5rem;
