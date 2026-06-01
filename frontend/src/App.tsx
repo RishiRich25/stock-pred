@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { fetchOhlcv, fetchPrediction } from "./api";
 import type { OHLCVRow, OHLCVResponse, PredictResponse } from "./types";
 
-const ONE_YEAR_LIMIT = 252;
+const RECENT_DAYS_LIMIT = 21;
 const SUGGESTED_TICKERS = ["AAPL", "MSFT", "AMZN", "NVDA", "GOOGL", "TSLA", "META", "AMD"];
 
 function formatNumber(value: number): string {
@@ -99,7 +99,7 @@ export default function App() {
     try {
       const [predictionResult, ohlcvResult] = await Promise.all([
         fetchPrediction(ticker.trim()),
-        fetchOhlcv(ticker.trim(), ONE_YEAR_LIMIT)
+        fetchOhlcv(ticker.trim(), RECENT_DAYS_LIMIT)
       ]);
       setPrediction(predictionResult);
       setOhlcv(ohlcvResult);
@@ -121,7 +121,7 @@ export default function App() {
           <h1 className="title">Check a Stock, Instantly</h1>
           <p className="lede">
             Enter a ticker to view the last year of closing prices and the model's next-day
-            prediction.
+            OHLC prediction.
           </p>
         </div>
         <div className="rule" aria-hidden="true" />
@@ -153,7 +153,7 @@ export default function App() {
 
       <section className="card">
         <div className="card-header">
-          <h2 className="card-title">Closing Prices (1 Year)</h2>
+          <h2 className="card-title">Closing Prices (21 Days)</h2>
           <span className="card-meta">{chart ? `${chart.startDate} to ${chart.endDate}` : "Awaiting data"}</span>
         </div>
         {chart ? (
@@ -212,6 +212,18 @@ export default function App() {
             <div>
               <p className="signal-label">Ticker</p>
               <p className="signal-value">{prediction.ticker}</p>
+            </div>
+            <div>
+              <p className="signal-label">Predicted open</p>
+              <p className="signal-value">{formatCurrency(prediction.predicted_open)}</p>
+            </div>
+            <div>
+              <p className="signal-label">Predicted high</p>
+              <p className="signal-value">{formatCurrency(prediction.predicted_high)}</p>
+            </div>
+            <div>
+              <p className="signal-label">Predicted low</p>
+              <p className="signal-value">{formatCurrency(prediction.predicted_low)}</p>
             </div>
             <div>
               <p className="signal-label">Predicted close</p>

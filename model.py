@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader, Dataset
 
 
 FEATURES = ["open", "high", "low", "close", "volume"]
+TARGET_FEATURES = ["open", "high", "low", "close"]
 
 
 @dataclass
@@ -30,7 +31,14 @@ class ZScoreScaler:
 
 
 class LSTMRegressor(nn.Module):
-	def __init__(self, input_size: int, hidden_size: int, num_layers: int, dropout: float = 0.0) -> None:
+	def __init__(
+		self,
+		input_size: int,
+		hidden_size: int,
+		output_size: int,
+		num_layers: int,
+		dropout: float = 0.0,
+	) -> None:
 		super().__init__()
 		self.lstm = nn.LSTM(
 			input_size=input_size,
@@ -39,7 +47,7 @@ class LSTMRegressor(nn.Module):
 			batch_first=True,
 			dropout=dropout if num_layers > 1 else 0.0,
 		)
-		self.fc = nn.Linear(hidden_size, 1)
+		self.fc = nn.Linear(hidden_size, output_size)
 
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		out, _ = self.lstm(x)
@@ -78,11 +86,11 @@ def _load_ticker_dataframe(csv_path: Path) -> pd.DataFrame:
 
 def _build_sequences(values: np.ndarray, seq_len: int) -> Tuple[np.ndarray, np.ndarray]:
 	sequences: List[np.ndarray] = []
-	targets: List[float] = []
+	targets: List[np.ndarray] = []
 	for i in range(len(values) - seq_len):
 		sequences.append(values[i : i + seq_len])
-		targets.append(values[i + seq_len, FEATURES.index("close")])
-	return np.array(sequences, dtype=np.float32), np.array(targets, dtype=np.float32).reshape(-1, 1)
+		targets.append(values[i + seq_len, [FEATURES.index(f) for f in TARGET_FEATURES]])
+	return np.array(sequences, dtype=np.float32), np.array(targets, dtype=np.float32)
 
 
 def _compute_scalers(values: np.ndarray) -> ZScoreScaler:
@@ -106,16 +114,19 @@ def _iter_ticker_csvs(tickers_dir: Path) -> Iterable[Path]:
 
 def _compute_mae_r2(preds: np.ndarray, targets: np.ndarray) -> Tuple[float, float]:
 	mae = float(np.mean(np.abs(preds - targets)))
-	ss_res = float(np.sum((targets - preds) ** 2))
-	ss_tot = float(np.sum((targets - np.mean(targets)) ** 2))
-	r2 = 0.0 if ss_tot == 0.0 else 1.0 - (ss_res / ss_tot)
+	per_feature_r2: List[float] = []
+	for idx in range(targets.shape[1]):
+		ss_res = float(np.sum((targets[:, idx] - preds[:, idx]) ** 2))
+		ss_tot = float(np.sum((targets[:, idx] - np.mean(targets[:, idx])) ** 2))
+		per_feature_r2.append(0.0 if ss_tot == 0.0 else 1.0 - (ss_res / ss_tot))
+	r2 = float(np.mean(per_feature_r2))
 	return mae, r2
 
 
 def train_model(
 	tickers_dir: str | Path = "data/tickers",
 	model_path: str | Path = "models/lstm.pt",
-	seq_len: int = 60,
+	seq_len: int = 21,
 	hidden_size: int = 64,
 	num_layers: int = 2,
 	dropout: float = 0.1,
@@ -155,7 +166,7 @@ def train_model(
 		device = "cuda"
 	if device.startswith("cuda") and not torch.cuda.is_available():
 		raise RuntimeError("CUDA device requested but not available.")
-	model = LSTMRegressor(len(FEATURES), hidden_size, num_layers, dropout=dropout).to(device)
+	model = LSTMRegressor(len(FEATURES), hidden_size, len(TARGET_FEATURES), num_layers, dropout=dropout).to(device)
 	optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 	loss_fn = nn.MSELoss()
 
@@ -203,7 +214,7 @@ def train_model(
 
 
 def _load_model(model_path: Path, hidden_size: int, num_layers: int, dropout: float, device: str) -> LSTMRegressor:
-	model = LSTMRegressor(len(FEATURES), hidden_size, num_layers, dropout=dropout)
+	model = LSTMRegressor(len(FEATURES), hidden_size, len(TARGET_FEATURES), num_layers, dropout=dropout)
 	state = torch.load(model_path, map_location=device)
 	model.load_state_dict(state)
 	model.to(device)
@@ -260,16 +271,14 @@ def predict_next(
 	with torch.no_grad():
 		pred_norm = model(torch.tensor(last_sequence, dtype=torch.float32).to(device)).cpu().numpy()
 
-	close_idx = FEATURES.index("close")
-	pred_close = scaler.inverse_transform(
-		np.concatenate(
-			[np.zeros((1, close_idx), dtype=np.float32), pred_norm, np.zeros((1, len(FEATURES) - close_idx - 1), dtype=np.float32)],
-			axis=1,
-		)
-	)[0, close_idx]
+	pred_norm = pred_norm.reshape(1, -1)
+	predicted = {}
+	for idx, feature in enumerate(TARGET_FEATURES):
+		feature_idx = FEATURES.index(feature)
+		predicted[feature] = float(pred_norm[0, idx] * scaler.std[feature_idx] + scaler.mean[feature_idx])
 
 	last_close = float(df["close"].iloc[-1])
-	delta_pct = ((pred_close - last_close) / last_close) * 100.0
+	delta_pct = ((predicted["close"] - last_close) / last_close) * 100.0
 	if delta_pct > threshold:
 		signal = "BUY"
 	elif delta_pct < -threshold:
@@ -282,7 +291,10 @@ def predict_next(
 
 	return {
 		"ticker": ticker,
-		"predicted_close": float(pred_close),
+		"predicted_open": predicted["open"],
+		"predicted_high": predicted["high"],
+		"predicted_low": predicted["low"],
+		"predicted_close": predicted["close"],
 		"last_close": last_close,
 		"delta_pct": float(delta_pct),
 		"signal": signal,
@@ -299,10 +311,10 @@ def load_prediction_scaler(ticker: str, scalers_dir: str | Path = "models/scaler
 
 
 def _parse_args() -> argparse.Namespace:
-	parser = argparse.ArgumentParser(description="Train LSTM model and optionally predict next close.")
+	parser = argparse.ArgumentParser(description="Train LSTM model and optionally predict next OHLC.")
 	parser.add_argument("--epochs", type=int, default=25, help="Number of training epochs.")
 	parser.add_argument("--predict", type=str, default="", help="Ticker to predict after training.")
-	parser.add_argument("--seq-len", type=int, default=60, help="Sequence length for training/prediction.")
+	parser.add_argument("--seq-len", type=int, default=21, help="Sequence length for training/prediction.")
 	parser.add_argument("--batch-size", type=int, default=64, help="Training batch size.")
 	parser.add_argument("--hidden-size", type=int, default=64, help="LSTM hidden size.")
 	parser.add_argument("--num-layers", type=int, default=2, help="Number of LSTM layers.")

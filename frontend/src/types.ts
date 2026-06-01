@@ -1,5 +1,8 @@
 export type PredictResponse = {
   ticker: string;
+  predicted_open: number;
+  predicted_high: number;
+  predicted_low: number;
   predicted_close: number;
   last_close: number;
   delta_pct: number;

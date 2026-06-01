@@ -23,6 +23,9 @@ app.add_middleware(
 
 class PredictResponse(BaseModel):
 	ticker: str
+	predicted_open: float
+	predicted_high: float
+	predicted_low: float
 	predicted_close: float
 	last_close: float
 	delta_pct: float
@@ -44,7 +47,7 @@ class OHLCVResponse(BaseModel):
 	rows: List[OHLCVRow]
 
 
-def _load_ohlcv_rows(ticker: str, tickers_dir: str | Path = "data/tickers", limit: int = 60) -> List[OHLCVRow]:
+def _load_ohlcv_rows(ticker: str, tickers_dir: str | Path = "data/tickers", limit: int = 21) -> List[OHLCVRow]:
 	safe_ticker = _safe_ticker_name(ticker)
 	csv_path = Path(tickers_dir) / f"{safe_ticker}.csv"
 	if not csv_path.exists():
@@ -88,7 +91,7 @@ def predict_ticker(ticker: str) -> PredictResponse:
 
 
 @app.get("/ohlcv/{ticker}", response_model=OHLCVResponse)
-def get_ohlcv(ticker: str, limit: int = 60) -> OHLCVResponse:
+def get_ohlcv(ticker: str, limit: int = 21) -> OHLCVResponse:
 	try:
 		rows = _load_ohlcv_rows(ticker, limit=limit)
 		return OHLCVResponse(ticker=ticker, rows=rows)
