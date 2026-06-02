@@ -244,7 +244,7 @@ def predict_next(
 	tickers_dir: str | Path = "data/tickers",
 	model_path: str | Path = "models/lstm.pt",
 	scalers_dir: str | Path = "models/scalers",
-	seq_len: int = 90,
+	seq_len: int = 21,
 	hidden_size: int = 64,
 	num_layers: int = 2,
 	dropout: float = 0.1,
@@ -277,8 +277,21 @@ def predict_next(
 		feature_idx = FEATURES.index(feature)
 		predicted[feature] = float(pred_norm[0, idx] * scaler.std[feature_idx] + scaler.mean[feature_idx])
 
-	last_close = float(df["close"].iloc[-1])
-	delta_pct = ((predicted["close"] - last_close) / last_close) * 100.0
+	last_row = df.iloc[-1]
+	last_close = float(last_row["close"])
+	last_values = {
+		"open": float(last_row["open"]),
+		"high": float(last_row["high"]),
+		"low": float(last_row["low"]),
+		"close": last_close,
+	}
+	per_feature_delta = []
+	for feature in TARGET_FEATURES:
+		base = last_values[feature]
+		if base == 0:
+			continue
+		per_feature_delta.append(((predicted[feature] - base) / base) * 100.0)
+	delta_pct = float(np.mean(per_feature_delta)) if per_feature_delta else 0.0
 	if delta_pct > threshold:
 		signal = "BUY"
 	elif delta_pct < -threshold:

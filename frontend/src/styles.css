@@ -233,15 +233,28 @@ body::before {
   stroke-width: 1.5;
 }
 
-.chart-line {
-  stroke: currentColor;
-  stroke-width: 3;
+.candle-wick {
+  stroke-width: 2;
   stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
-.chart-dot {
-  fill: currentColor;
+.candle-body {
+  stroke-width: 2;
+}
+
+.candle-up {
+  stroke: #0a7a2f;
+  fill: #0a7a2f;
+}
+
+.candle-down {
+  stroke: #b00020;
+  fill: #b00020;
+}
+
+.candle-pred {
+  stroke-dasharray: 4 4;
+  fill-opacity: 0.2;
 }
 
 .chart-footer {

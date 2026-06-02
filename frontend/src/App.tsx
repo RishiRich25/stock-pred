@@ -19,7 +19,15 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-type ChartPoint = { x: number; y: number };
+type CandleDatum = {
+  x: number;
+  openY: number;
+  closeY: number;
+  highY: number;
+  lowY: number;
+  isUp: boolean;
+  isPrediction: boolean;
+};
 
 function pickStep(range: number): number {
   const bases = [1, 2, 5, 10];
@@ -46,25 +54,28 @@ function buildTicks(min: number, max: number): number[] {
   return ticks;
 }
 
-function buildLinePoints(rows: OHLCVRow[], width: number, height: number, padding: number) {
-  const values = rows.map((row) => row.close);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+function buildCandles(rows: OHLCVRow[], width: number, height: number, padding: number) {
+  const lows = rows.map((row) => row.low);
+  const highs = rows.map((row) => row.high);
+  const min = Math.min(...lows);
+  const max = Math.max(...highs);
   const range = max - min || 1;
-  const xStep = (width - padding * 2) / Math.max(values.length - 1, 1);
-  const points = values.map((value, index) => {
-    const x = padding + index * xStep;
-    const y = padding + (1 - (value - min) / range) * (height - padding * 2);
-    return { x, y };
-  });
-  return { points, min, max };
-}
+  const count = Math.max(rows.length, 1);
+  const xStep = (width - padding * 2) / count;
+  const candleWidth = Math.min(18, xStep * 0.6);
 
-function buildLinePath(points: ChartPoint[]): string {
-  return points
-    .map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`)
-    .map((point, index) => (index === 0 ? `M ${point}` : `L ${point}`))
-    .join(" ");
+  const candles: CandleDatum[] = rows.map((row, index) => {
+    const centerX = padding + index * xStep + xStep / 2;
+    const highY = padding + (1 - (row.high - min) / range) * (height - padding * 2);
+    const lowY = padding + (1 - (row.low - min) / range) * (height - padding * 2);
+    const openY = padding + (1 - (row.open - min) / range) * (height - padding * 2);
+    const closeY = padding + (1 - (row.close - min) / range) * (height - padding * 2);
+    const isUp = row.close >= row.open;
+    const isPrediction = row.date === "Prediction";
+    return { x: centerX, highY, lowY, openY, closeY, isUp, isPrediction };
+  });
+
+  return { candles, min, max, candleWidth };
 }
 
 export default function App() {
@@ -78,19 +89,27 @@ export default function App() {
     if (!ohlcv) {
       return null;
     }
-    const rows = ohlcv.rows;
+    const rows = [...ohlcv.rows];
+    if (prediction) {
+      rows.push({
+        date: "Prediction",
+        open: prediction.predicted_open,
+        high: prediction.predicted_high,
+        low: prediction.predicted_low,
+        close: prediction.predicted_close,
+        volume: 0
+      });
+    }
     const width = 860;
     const height = 280;
     const padding = 24;
-    const { points, min, max } = buildLinePoints(rows, width, height, padding);
-    const path = buildLinePath(points);
-    const lastPoint = points[points.length - 1];
-    const startDate = rows[0]?.date ?? "";
-    const endDate = rows[rows.length - 1]?.date ?? "";
-    const lastClose = rows[rows.length - 1]?.close ?? 0;
+    const { candles, min, max, candleWidth } = buildCandles(rows, width, height, padding);
+    const startDate = ohlcv.rows[0]?.date ?? "";
+    const endDate = ohlcv.rows[ohlcv.rows.length - 1]?.date ?? "";
+    const lastClose = ohlcv.rows[ohlcv.rows.length - 1]?.close ?? 0;
     const ticks = buildTicks(min, max);
-    return { min, max, path, startDate, endDate, lastClose, lastPoint, ticks };
-  }, [ohlcv]);
+    return { min, max, candles, candleWidth, startDate, endDate, lastClose, ticks };
+  }, [ohlcv, prediction]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -153,7 +172,7 @@ export default function App() {
 
       <section className="card">
         <div className="card-header">
-          <h2 className="card-title">Closing Prices (21 Days)</h2>
+          <h2 className="card-title">Candles (21 Days + Prediction)</h2>
           <span className="card-meta">{chart ? `${chart.startDate} to ${chart.endDate}` : "Awaiting data"}</span>
         </div>
         {chart ? (
@@ -169,7 +188,7 @@ export default function App() {
                     </span>
                   ))}
               </div>
-              <svg viewBox="0 0 860 280" className="chart-svg" aria-label="Closing price chart">
+              <svg viewBox="0 0 860 280" className="chart-svg" aria-label="Candlestick chart">
                 {[0.25, 0.5, 0.75].map((value) => (
                   <line
                     key={value}
@@ -180,21 +199,37 @@ export default function App() {
                     className="chart-grid-line"
                   />
                 ))}
-                <path d={chart.path} className="chart-line" fill="none" />
-                {chart.lastPoint ? (
-                  <circle
-                    cx={chart.lastPoint.x}
-                    cy={chart.lastPoint.y}
-                    r={4}
-                    className="chart-dot"
-                  />
-                ) : null}
+                {chart.candles.map((candle, index) => {
+                  const bodyTop = Math.min(candle.openY, candle.closeY);
+                  const bodyHeight = Math.max(2, Math.abs(candle.openY - candle.closeY));
+                  const directionClass = candle.isUp ? "candle-up" : "candle-down";
+                  const predictionClass = candle.isPrediction ? "candle-pred" : "";
+                  return (
+                    <g key={`${candle.x}-${index}`} className={`candle ${directionClass} ${predictionClass}`}>
+                      <line
+                        x1={candle.x}
+                        x2={candle.x}
+                        y1={candle.highY}
+                        y2={candle.lowY}
+                        className="candle-wick"
+                      />
+                      <rect
+                        x={candle.x - chart.candleWidth / 2}
+                        y={bodyTop}
+                        width={chart.candleWidth}
+                        height={bodyHeight}
+                        className="candle-body"
+                      />
+                    </g>
+                  );
+                })}
               </svg>
             </div>
             <div className="chart-footer">
               <span className="mono">Low: {formatCurrency(chart.min)}</span>
               <span className="mono">Latest: {formatCurrency(chart.lastClose)}</span>
               <span className="mono">High: {formatCurrency(chart.max)}</span>
+              <span className="mono">Prediction: next candle</span>
             </div>
           </div>
         ) : (
