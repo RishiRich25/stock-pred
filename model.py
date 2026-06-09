@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 import argparse
+import yfinance as yf
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
@@ -82,6 +83,43 @@ def _load_ticker_dataframe(csv_path: Path) -> pd.DataFrame:
 	if missing:
 		raise ValueError(f"Missing columns {missing} in {csv_path}")
 	return df
+
+
+def _normalize_market_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+	df = df.copy()
+	if isinstance(df.columns, pd.MultiIndex):
+		df.columns = [str(col[0]) for col in df.columns]
+	df.columns = [str(c).strip().lower() for c in df.columns]
+	if "date" in df.columns:
+		df = df.sort_values("date")
+	else:
+		df = df.reset_index().rename(columns={"index": "date"})
+	missing = [c for c in FEATURES if c not in df.columns]
+	if missing:
+		raise ValueError(f"Missing columns {missing} in yfinance response")
+	return df
+
+
+def load_recent_market_data(
+	ticker: str,
+	limit: int = 21,
+	period: str = "3mo",
+	interval: str = "1d",
+) -> pd.DataFrame:
+	raw = yf.download(
+		ticker,
+		period=period,
+		interval=interval,
+		progress=False,
+		auto_adjust=False,
+		group_by="column",
+	)
+	if raw.empty:
+		raise FileNotFoundError(f"No yfinance data found for ticker: {ticker}")
+	df = _normalize_market_dataframe(raw)
+	if len(df) < limit:
+		raise ValueError(f"Not enough market history to build a {limit}-day window for {ticker}.")
+	return df.tail(limit).reset_index(drop=True)
 
 
 def _build_sequences(values: np.ndarray, seq_len: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -251,20 +289,15 @@ def predict_next(
 	threshold: float = 0.8,
 	device: str | None = None,
 ) -> Dict[str, float | str]:
-	tickers_dir = Path(tickers_dir)
 	model_path = Path(model_path)
 	scalers_dir = Path(scalers_dir)
+	df = load_recent_market_data(ticker, limit=seq_len)
 	safe_ticker = _safe_ticker_name(ticker)
-	csv_path = tickers_dir / f"{safe_ticker}.csv"
-	if not csv_path.exists():
-		raise FileNotFoundError(f"Ticker data not found: {csv_path}")
 
-	df = _load_ticker_dataframe(csv_path)
-	if len(df) <= seq_len + 1:
-		raise ValueError("Not enough history to build a prediction window.")
-
-	sequences, _, scaler = _prepare_ticker_data(df, seq_len)
-	last_sequence = sequences[-1:]
+	values = df[FEATURES].to_numpy(dtype=np.float32)
+	scaler = _compute_scalers(values)
+	normalized = scaler.transform(values)
+	last_sequence = normalized[-seq_len:][None, ...]
 
 	device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 	model = _load_model(model_path, hidden_size, num_layers, dropout, device)
